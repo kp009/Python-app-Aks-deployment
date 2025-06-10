@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.py,cover
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Git
+.git/
+.gitignore
+.gitmodules
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets
+.env
+*.env
+secrets.ini
+*.secret
+
+# Logs
+*.log
+logs/
+
+# Build files
+dist/
+build/
+*.egg-info/
+
+# Temp files
+*.tmp
+*.temp
+*~
+
+# OS files
+.DS_Store
+Thumbs.dbit is
