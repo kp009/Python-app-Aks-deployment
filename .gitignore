@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Kubernetes
+*.yaml.bak
+*.bak
+
+# IDE
+.vscode/
+.idea/
+
+# Secrets
+.env
+*.env
+secrets.ini
+
+# Azure
+azureauth.json
