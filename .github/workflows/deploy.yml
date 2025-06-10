@@ -36,10 +36,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
+    - name: Run tests (if any exist)
       run: |
-        # Add your test command here
-        pytest tests/  # Example test command
+        if [ -d "tests" ] && [ -n "$(find tests -name 'test_*.py' -o -name '*_test.py')" ]; then
+          pytest tests/
+        else
+          echo "No tests found - skipping pytest"
+        fi
 
   deploy-to-aks:
     needs: build-and-test
@@ -75,14 +78,24 @@ jobs:
       run: |
         # Check if deployment exists
         if kubectl get deployment/$APP_NAME; then
-          # Update existing deployment
+          # Update existing deployment (without --record flag)
           kubectl set image deployment/$APP_NAME \
-            $APP_NAME=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} \
-            --record
+            $APP_NAME=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }}
+          
+          # Add change-cause annotation manually
+          kubectl annotate deployment/$APP_NAME \
+            kubernetes.io/change-cause="Image updated to $ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} via GitHub Actions" \
+            --overwrite
         else
-          # Create new deployment if it doesn't exist
+          # Create new deployment
           kubectl create deployment $APP_NAME \
             --image=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }}
+          
+          # Add change-cause annotation
+          kubectl annotate deployment/$APP_NAME \
+            kubernetes.io/change-cause="Initial deployment of $ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} via GitHub Actions"
+            
+          # Expose service
           kubectl expose deployment $APP_NAME \
             --type=LoadBalancer \
             --port=80 \
