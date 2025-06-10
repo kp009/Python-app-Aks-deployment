@@ -1,0 +1,71 @@
+name: Build, Test and Deploy to AKS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  RESOURCE_GROUP: python-rg
+  CLUSTER_NAME: python-app-cluster
+  ACR_NAME: pythonacrap
+  APP_NAME: python-app
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        # Add your test command here
+        echo "Tests would run here"
+
+  deploy-to-aks:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Build and push image to ACR
+      run: |
+        az acr build --registry $ACR_NAME \
+                     --image $APP_NAME:${{ github.sha }} \
+                     --file Dockerfile .
+
+    - name: Get AKS credentials
+      run: |
+        az aks get-credentials --name $CLUSTER_NAME \
+                               --resource-group $RESOURCE_GROUP \
+                               --overwrite-existing
+
+    - name: Deploy to AKS
+      run: |
+        # Update deployment with new image
+        kubectl set image deployment/$APP_NAME \
+          $APP_NAME=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} \
+          --record
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/$APP_NAME
