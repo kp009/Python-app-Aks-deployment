@@ -36,10 +36,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
+    - name: Run tests (if any exist)
       run: |
-        # Add your test command here
-        pytest tests/  # Example test command
+        # Skip if no test files are found
+        if [ -d "tests" ] && [ -n "$(find tests -name 'test_*.py' -o -name '*_test.py')" ]; then
+          pytest tests/
+        else
+          echo "No tests found - skipping pytest"
+        fi
 
   deploy-to-aks:
     needs: build-and-test
