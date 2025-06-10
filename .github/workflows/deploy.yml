@@ -21,7 +21,7 @@ jobs:
 
     - name: Validate Dockerfile exists
       run: |
-        if [ ! -f Dockerfile ]; then
+        if [ ! -f dockerfile ]; then
           echo "::error::Dockerfile not found in repository root"
           exit 1
         fi
@@ -59,7 +59,7 @@ jobs:
       run: |
         az acr build --registry $ACR_NAME \
                      --image $APP_NAME:${{ github.sha }} \
-                     --file Dockerfile .
+                     --file dockerfile .
 
     - name: Verify ACR image exists
       run: |
