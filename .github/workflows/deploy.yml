@@ -19,6 +19,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Validate Dockerfile exists
+      run: |
+        if [ ! -f Dockerfile ]; then
+          echo "::error::Dockerfile not found in repository root"
+          exit 1
+        fi
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -32,7 +39,7 @@ jobs:
     - name: Run tests
       run: |
         # Add your test command here
-        echo "Tests would run here"
+        pytest tests/  # Example test command
 
   deploy-to-aks:
     needs: build-and-test
@@ -51,7 +58,12 @@ jobs:
     - name: Build and push image to ACR
       run: |
         az acr build --registry $ACR_NAME \
-                     --image $APP_NAME:${{ github.sha }} 
+                     --image $APP_NAME:${{ github.sha }} \
+                     --file Dockerfile .
+
+    - name: Verify ACR image exists
+      run: |
+        az acr repository show-tags --name $ACR_NAME --repository $APP_NAME --output table
 
     - name: Get AKS credentials
       run: |
@@ -61,10 +73,22 @@ jobs:
 
     - name: Deploy to AKS
       run: |
-        # Update deployment with new image
-        kubectl set image deployment/$APP_NAME \
-          $APP_NAME=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} \
-          --record
+        # Check if deployment exists
+        if kubectl get deployment/$APP_NAME; then
+          # Update existing deployment
+          kubectl set image deployment/$APP_NAME \
+            $APP_NAME=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }} \
+            --record
+        else
+          # Create new deployment if it doesn't exist
+          kubectl create deployment $APP_NAME \
+            --image=$ACR_NAME.azurecr.io/$APP_NAME:${{ github.sha }}
+          kubectl expose deployment $APP_NAME \
+            --type=LoadBalancer \
+            --port=80 \
+            --target-port=5000
+        fi
         
         # Wait for rollout to complete
         kubectl rollout status deployment/$APP_NAME
+        kubectl get services -w
