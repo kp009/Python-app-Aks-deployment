@@ -51,8 +51,7 @@ jobs:
     - name: Build and push image to ACR
       run: |
         az acr build --registry $ACR_NAME \
-                     --image $APP_NAME:${{ github.sha }} \
-                     --file Dockerfile .
+                     --image $APP_NAME:${{ github.sha }} 
 
     - name: Get AKS credentials
       run: |
